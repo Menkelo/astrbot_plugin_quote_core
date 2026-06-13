@@ -1,0 +1,52 @@
+{
+    "user_blacklist": {
+        "description": "全局黑名单 (QQ号)",
+        "type": "list",
+        "default": [],
+        "hint": "该名单内的用户无法被收录语录（包括手动收录和AI自动挖掘）"
+    },
+    "poke_enabled": {
+        "description": "戳一戳发送语录",
+        "type": "bool",
+        "default": false,
+        "hint": "开启后，戳机器人会随机发送一条语录；戳群友会发送该群友的语录；没有可发送语录时静默"
+    },
+    "manual_ai_comment_enabled": {
+        "description": "手动收录 AI 点评",
+        "type": "bool",
+        "default": false,
+        "hint": "开启后，/收录 成功提示会立即返回，随后后台调用 LLM 为语录补充犀利点评"
+    },
+    "llm_provider_id": {
+        "description": "点评专用模型",
+        "type": "string",
+        "_special": "select_provider",
+        "default": "",
+        "hint": "指定用于手动收录点评的特定模型；留空则不调用 LLM，也不会自动选择当前会话或其他模型"
+    },
+    "max_batch_count": {
+        "description": "随机抽卡上限",
+        "type": "int",
+        "default": 10,
+        "slider": { "min": 5, "max": 50, "step": 5 },
+        "hint": "限制 /语录 20 这种指令的最大数量，防止生成过长图片"
+    },
+    "ignore_prefix": {
+        "description": "无需前缀触发",
+        "type": "bool",
+        "default": false,
+        "hint": "开启后，直接发送“语录”即可触发，无需加 /"
+    },
+    "global_mode": {
+        "description": "全局语录库模式",
+        "type": "bool",
+        "default": false,
+        "hint": "开启后，所有群共享同一个语录库（默认每个群独立）"
+    },
+    "admin_only": {
+        "description": "仅管理员可删除",
+        "type": "bool",
+        "default": false,
+        "hint": "开启后，只有Bot管理员可以使用 /删除 指令"
+    }
+}
