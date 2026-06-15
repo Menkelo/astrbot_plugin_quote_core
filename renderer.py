@@ -19,282 +19,190 @@ except ImportError:
 from .model import Quote, Comment
 
 
-# --- 轻量版 CSS（宽度 1600px，缩放比例≈0.72） ---
-MOMENTS_CSS = """
-    /* 已禁用 Google Fonts 远程字体，避免 Playwright 截图时等待字体加载超时 */
-    
-    :root {
-        --bg-color: #0d0d0d;
-        --text-primary: #f2f2f2;
-        --text-secondary: #888888;
-        --name-color: #8fbdf5;     
-        --divider-color: #262626;
-        --link-bg: #1a1a1a;
-        --comment-bg: #161616;
-    }
-
+# --- 单人语录合集：明亮杂志 / 语录书 风格 (宽度 1600px) ---
+MAGAZINE_CSS = """
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-        margin: 0; 
-        font-family: 'Noto Sans SC', 'Microsoft YaHei', 'PingFang SC', 'Source Han Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        background: var(--bg-color);
-        color: var(--text-primary);
+        margin: 0;
+        background: #f7f4ec;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
         overflow: hidden;
     }
 
-    .moments-item {
-        display: flex; flex-direction: row; align-items: flex-start;
+    .mag {
         width: 100%;
-        padding: 60px 70px;
-        background: var(--bg-color);
-    }
-    
-    .moments-item.simple {
-        padding: 45px 70px; 
+        background: #f7f4ec;
+        font-family: 'Noto Sans SC', 'Source Han Sans SC', 'Microsoft YaHei',
+                     'PingFang SC', -apple-system, sans-serif;
+        color: #1c1a17;
     }
 
-    .moments-item.simple .avatar-col { display: none; } 
-
-    .moments-item.simple .text-body { 
-        font-size: 66px;
-        margin-bottom: 24px; 
+    .mag-serif {
+        font-family: Georgia, 'Times New Roman', 'Source Han Serif SC',
+                     'Noto Serif SC', 'Songti SC', serif;
     }
 
-    .moments-item.simple .content-col { padding-top: 0; }
-
-    .avatar-col {
-        margin-right: 40px;
-        flex-shrink: 0;
+    .mag-header {
+        padding: 96px 96px 64px 96px;
+        border-bottom: 3px solid #e3ddcd;
     }
 
-    .avatar { 
-        width: 170px;
-        height: 170px;
-        border-radius: 22px; 
-        object-fit: cover; 
-        background: #222;
-        border: 2px solid #333;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        image-rendering: -webkit-optimize-contrast;
+    .mag-kicker {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 32px;
+        letter-spacing: 10px;
+        color: #b08a3e;
+        font-weight: 700;
     }
 
-    .content-col {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        min-width: 0;
-        padding-top: 8px;
-    }
-    
-    .nickname { 
-        font-size: 60px;
-        font-weight: 600;
-        color: var(--name-color); 
-        margin-bottom: 22px;
-        line-height: 1.2;
-        letter-spacing: 1px;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-    
-    .text-body { 
-        font-size: 66px;
-        color: var(--text-primary);
-        line-height: 1.6; 
-        margin-bottom: 36px; 
-        word-wrap: break-word;
-        white-space: pre-wrap; 
-        text-align: justify;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    }
-
-    .comments-section {
-        margin-top: 28px;
-        background: var(--comment-bg);
-        border-radius: 10px;
-        padding: 30px 45px;
-        position: relative;
-        border: 1px solid #2a2a2a;
-    }
-
-    .comments-section::before {
-        content: '';
-        position: absolute;
-        top: -14px;
-        left: 45px;
-        border-width: 0 14px 14px 14px;
-        border-style: solid;
-        border-color: transparent transparent var(--comment-bg) transparent;
-    }
-    
-    .comment-row {
-        display: flex;
-        align-items: flex-start;
-        margin-bottom: 14px;
-    }
-
-    .comment-row:last-child {
-        margin-bottom: 0;
-    }
-    
-    .cmt-content { 
-        flex: 1; 
-        font-size: 36px; 
-        line-height: 1.5;
-        color: #ddd; 
-        text-align: justify; 
+    .mag-title {
+        font-size: 90px;
+        font-weight: 700;
+        color: #1c1a17;
+        margin-top: 18px;
+        line-height: 1.15;
         word-break: break-word;
     }
 
-    .cmt-name { 
-        color: var(--name-color); 
-        font-weight: 600; 
-        margin-right: 12px; 
-    }
-    
-    .footer-row { 
-        display: flex;
-        align-items: flex-start;
-        gap: 28px;
-        margin-top: 8px;
-        width: 100%;
-    }
+    .mag-title .m-name { color: #b08a3e; }
 
-    .footer-left {
-        display: grid;
-        grid-template-columns: max-content minmax(0, 1fr);
-        column-gap: 28px;
-        align-items: start;
-        flex: 1 1 auto;
-        min-width: 0;
-    }
-    
-    .time-text {
-        font-size: 40px;
-        color: var(--text-secondary);
-        letter-spacing: 1px;
-        white-space: nowrap;
-    }
-    
-    .group-tag {
-        font-size: 40px; 
-        color: var(--name-color); 
-        font-weight: 500;
-        line-height: 1.35;
-        min-width: 0;
-        overflow-wrap: anywhere;
-    }
-    
-    .index-tag {
+    .mag-sub {
         font-size: 34px;
-        color: #666;
-        font-weight: bold;
-        background: #181818;
-        padding: 8px 18px;
-        border-radius: 10px;
-        border: 2px solid #2a2a2a;
-        flex: 0 0 auto;
-        white-space: nowrap;
+        color: #a89f8a;
+        margin-top: 22px;
+        letter-spacing: 1px;
     }
 
-    .list-container {
-        width: 100%;
+    .mag-item {
         display: flex;
-        flex-direction: column;
+        gap: 54px;
+        padding: 66px 96px;
+        border-bottom: 2px solid #ece6d7;
+        align-items: flex-start;
     }
-    
-    .list-header {
-        padding: 85px 70px 45px 70px;
-        border-bottom: 2px solid var(--divider-color);
-        background: #111;
-        display: flex; 
-        flex-direction: row; 
-        align-items: center; 
-    }
-    
-    .header-avatar-box {
-        margin-right: 40px;
+
+    .mag-item:last-of-type { border-bottom: none; }
+
+    .mag-num {
+        font-size: 104px;
+        font-weight: 700;
+        color: #dacfb3;
+        line-height: 0.9;
+        min-width: 160px;
         flex-shrink: 0;
     }
 
-    .header-avatar {
-        width: 170px;
-        height: 170px; 
-        border-radius: 22px;
-        object-fit: cover;
-        background: #222;
-        border: 2px solid #333;
-        image-rendering: -webkit-optimize-contrast;
+    .mag-body { flex: 1; min-width: 0; }
+
+    .mag-text {
+        font-size: 60px;
+        line-height: 1.5;
+        color: #24211c;
+        word-break: break-word;
+        white-space: pre-wrap;
     }
 
-    .header-left {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-        min-width: 0;
-    }
-    
-    .header-title { 
-        font-size: 68px; 
-        font-weight: bold; 
-        margin-bottom: 16px; 
-        line-height: 1.1;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .title-name {
-        color: var(--name-color);
-    }
-
-    .title-white {
-        color: #fff;
-    }
-
-    .header-sub {
-        font-size: 36px;
-        color: #666;
-    }
-
-    .card-footer {
-        padding: 45px 70px 70px 70px;
-        border-top: 2px solid var(--divider-color);
-        background: #111;
-        display: flex; 
-        flex-direction: column; 
-        align-items: flex-start;
-    }
-    
-    .footer-plugin-info {
-        font-size: 30px;
-        color: #555;
-        font-weight: bold;
-        margin-bottom: 12px;
-    }
-
-    .footer-gen-time {
-        font-size: 26px;
-        color: #444;
+    .mag-meta {
+        font-size: 32px;
+        color: #a89f8a;
+        margin-top: 22px;
         letter-spacing: 1px;
-        font-weight: 500;
     }
 
-    .divider {
-        height: 2px;
-        background: var(--divider-color);
-        margin-left: 70px;
-        margin-right: 70px;
+    .mag-meta .dot { margin: 0 16px; color: #cdbf9f; }
+    .mag-src { color: #b08a3e; }
+
+    .mag-cmt {
+        margin-top: 28px;
+        font-size: 36px;
+        line-height: 1.6;
+        color: #6f6552;
+        background: #efe9d8;
+        border-left: 6px solid #c9b27a;
+        padding: 24px 34px;
+        border-radius: 0 14px 14px 0;
     }
-    
-    .divider.normal {
-        margin-left: 280px;
-        margin-right: 0;
+
+    .mag-cmt + .mag-cmt { margin-top: 14px; }
+    .mag-cmt b { color: #a9863c; font-weight: 700; }
+
+    .mag-footer {
+        padding: 48px 96px 64px 96px;
+        background: #f2eede;
+        border-top: 3px solid #e3ddcd;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 28px;
+        color: #b3a98f;
     }
+
+    .mag-footer .fp { font-weight: 700; letter-spacing: 1px; }
+
+    /* ---- 单卡 (/语录) ---- */
+    .mag-sc-top { padding: 96px 100px 0 100px; }
+    .mag-sc-user {
+        display: flex; align-items: center; gap: 38px;
+        margin: 30px 0 8px 0;
+    }
+    .mag-sc-av {
+        width: 160px; height: 160px; border-radius: 50%;
+        object-fit: cover; border: 5px solid #ffffff;
+        box-shadow: 0 8px 22px rgba(0,0,0,0.18); background: #e6dec9;
+        flex-shrink: 0;
+    }
+    .mag-sc-name {
+        font-size: 64px; font-weight: 700; color: #b08a3e; line-height: 1.1;
+        word-break: break-word;
+    }
+    .mag-sc-uid { font-size: 30px; color: #a89f8a; margin-top: 10px; }
+    .mag-sc-quote { padding: 0 100px; position: relative; }
+    .mag-sc-qmark {
+        font-family: Georgia, 'Times New Roman', serif;
+        font-size: 240px; line-height: 0.7; color: #e4dabc;
+        display: block; height: 130px;
+    }
+    .mag-sc-text {
+        font-size: 84px; font-weight: 600; line-height: 1.4; color: #24211c;
+        margin-top: 8px; white-space: pre-wrap; word-break: break-word;
+    }
+    .mag-sc-body { padding: 24px 100px 72px 100px; }
+    .mag-sc-meta {
+        font-size: 33px; color: #a89f8a; margin-top: 40px;
+        letter-spacing: 1px; display: flex; align-items: center;
+    }
+    .mag-idx {
+        font-family: Georgia, 'Times New Roman', serif; font-weight: 700;
+        color: #b08a3e; border: 3px solid #ddcfa8; border-radius: 999px;
+        padding: 8px 28px; font-size: 32px; margin-right: 26px;
+    }
+
+    /* ---- 多人合集 (/语录 N) ---- */
+    .mag-user-item {
+        display: flex; gap: 46px; padding: 64px 100px;
+        border-bottom: 2px solid #ece6d7; align-items: flex-start;
+    }
+    .mag-user-item:last-of-type { border-bottom: none; }
+    .mag-user-av {
+        width: 135px; height: 135px; border-radius: 50%; object-fit: cover;
+        border: 4px solid #ffffff; box-shadow: 0 6px 18px rgba(0,0,0,0.16);
+        background: #e6dec9; flex-shrink: 0;
+    }
+    .mag-user-body { flex: 1; min-width: 0; }
+    .mag-user-top {
+        display: flex; align-items: baseline; justify-content: space-between;
+        gap: 24px;
+    }
+    .mag-user-name {
+        font-size: 48px; font-weight: 700; color: #b08a3e; word-break: break-word;
+    }
+    .mag-user-num {
+        font-size: 64px; font-weight: 700; color: #dacfb3; line-height: 1;
+        flex-shrink: 0;
+    }
+    .mag-user-body .mag-text { margin-top: 14px; }
 """
 
 
@@ -525,6 +433,43 @@ class QuoteRenderer:
         """
 
     @staticmethod
+    def _build_magazine_comments(
+        q: Quote, bot_qq: str, bot_name: str
+    ) -> str:
+        """构造杂志风格的评论/AI 点评块（最多 3 条）。"""
+        display_comments = list(q.comments)
+        if not display_comments and q.ai_reason:
+            display_comments.append(
+                Comment(
+                    qq=str(bot_qq),
+                    name=bot_name,
+                    text=q.ai_reason,
+                    created_at=q.created_at,
+                )
+            )
+        out = ""
+        for c in display_comments[-3:]:
+            out += (
+                '<div class="mag-cmt">'
+                f'<b>{html.escape(c.name)} ·</b> {html.escape(c.text)}'
+                '</div>'
+            )
+        return out
+
+    @staticmethod
+    def _magazine_source_html(q: Quote, current_group_id: Optional[str]) -> str:
+        """global 模式下的来源群标签（杂志风）。"""
+        label = getattr(q, "temp_source_label", "")
+        if label and (
+            not current_group_id or str(q.group) != str(current_group_id)
+        ):
+            return (
+                '<span class="dot">·</span>'
+                f'<span class="mag-src">{html.escape(label)}</span>'
+            )
+        return ""
+
+    @staticmethod
     async def render_single_card(
         q: Quote,
         index: int,
@@ -533,20 +478,19 @@ class QuoteRenderer:
         bot_qq: str = "10000",
         bot_name: str = "AI鉴赏家"
     ) -> Tuple[str, Dict[str, Any]]:
+        """单条语录：明亮杂志 / 语录书 风格的特写页。"""
         avatar_b64 = await QuoteRenderer._fetch_avatar_b64(q.qq)
 
         safe_text = html.escape(q.text)
         safe_name = html.escape(q.name)
-
         time_text = QuoteRenderer._get_time_text(q.created_at)
         count_text = f"#{index} / {total}" if total > 0 else "AstrBot"
-        group_html = QuoteRenderer._get_group_html(q, current_group_id)
 
-        comments_html = await QuoteRenderer._prepare_comments_html(
-            q,
-            bot_qq,
-            bot_name
+        src_html = QuoteRenderer._magazine_source_html(q, current_group_id)
+        uid_html = (
+            f'<div class="mag-sc-uid">{src_html}</div>' if src_html else ""
         )
+        cmt_html = QuoteRenderer._build_magazine_comments(q, bot_qq, bot_name)
 
         gen_time = datetime.now().strftime("%Y-%m-%d %H:%M")
         plugin_info_text = "Menkelo/astrbot_plugin_quote_core"
@@ -556,36 +500,36 @@ class QuoteRenderer:
         <head>
             <meta charset="utf-8">
             <style>
-                {MOMENTS_CSS}
-                body {{
-                    width: 1600px;
-                    display: flex;
-                    flex-direction: column;
-                }}
+                {MAGAZINE_CSS}
+                body {{ width: 1600px; }}
             </style>
         </head>
         <body>
-            <div class="moments-item" style="flex: 1;">
-                <div class="avatar-col">
-                    <img class="avatar" src="{avatar_b64}">
-                </div>
-                <div class="content-col">
-                    <div class="nickname">{safe_name}</div>
-                    <div class="text-body">{safe_text}</div>
-                    <div class="footer-row">
-                        <div class="footer-left">
-                            <span class="time-text">{time_text}</span>
-                            {group_html}
+            <div class="mag">
+                <div class="mag-sc-top">
+                    <div class="mag-kicker">QUOTE</div>
+                    <div class="mag-sc-user">
+                        <img class="mag-sc-av" src="{avatar_b64}">
+                        <div>
+                            <div class="mag-sc-name">{safe_name}</div>
+                            {uid_html}
                         </div>
-                        <span class="index-tag">{count_text}</span>
                     </div>
-                    {comments_html}
                 </div>
-            </div>
-            
-            <div class="card-footer">
-                <div class="footer-plugin-info">{plugin_info_text}</div>
-                <div class="footer-gen-time">{gen_time}</div>
+                <div class="mag-sc-quote">
+                    <span class="mag-sc-qmark">&ldquo;</span>
+                    <div class="mag-sc-text">{safe_text}</div>
+                </div>
+                <div class="mag-sc-body">
+                    {cmt_html}
+                    <div class="mag-sc-meta">
+                        <span class="mag-idx">{count_text}</span>{time_text}
+                    </div>
+                </div>
+                <div class="mag-footer">
+                    <span class="fp">{plugin_info_text}</span>
+                    <span>{gen_time}</span>
+                </div>
             </div>
         </body>
         </html>
@@ -593,10 +537,86 @@ class QuoteRenderer:
 
         return html_content, {
             "full_page": True,
-            "viewport": {
-                "width": 1600,
-                "height": 1
-            }
+            "viewport": {"width": 1600, "height": 1},
+        }
+
+    @staticmethod
+    async def _render_collection_magazine(
+        quotes: List[Quote],
+        title: str,
+        self_qq: str,
+        current_group_id: Optional[str] = None,
+        bot_name: str = "AI鉴赏家",
+    ) -> Tuple[str, Dict[str, Any]]:
+        """单人语录合集：明亮杂志 / 语录书 风格。"""
+        items_html = ""
+
+        for i, q in enumerate(quotes):
+            safe_text = html.escape(q.text)
+            time_text = QuoteRenderer._get_time_text(q.created_at)
+
+            src_html = QuoteRenderer._magazine_source_html(q, current_group_id)
+            cmt_html = QuoteRenderer._build_magazine_comments(
+                q, self_qq, bot_name
+            )
+
+            items_html += f"""
+            <div class="mag-item">
+                <div class="mag-num mag-serif">{i + 1:02d}</div>
+                <div class="mag-body">
+                    <div class="mag-text">{safe_text}</div>
+                    <div class="mag-meta">{time_text}{src_html}</div>
+                    {cmt_html}
+                </div>
+            </div>
+            """
+
+        # 标题：把人名高亮，"的随机语录" 保持深色
+        suffix = "的随机语录"
+        if suffix in title:
+            name_part = title.rsplit(suffix, 1)[0]
+            title_html = (
+                f'<span class="m-name">{html.escape(name_part)}</span>{suffix}'
+            )
+        else:
+            title_html = html.escape(title)
+
+        sub_text = (
+            f"已随机抽取 {len(quotes)} 条 · "
+            f"{datetime.now().strftime('%Y-%m-%d')}"
+        )
+        gen_time = datetime.now().strftime("%Y-%m-%d %H:%M")
+        plugin_info_text = "Menkelo/astrbot_plugin_quote_core"
+
+        html_content = f"""
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <style>
+                {MAGAZINE_CSS}
+                body {{ width: 1600px; }}
+            </style>
+        </head>
+        <body>
+            <div class="mag">
+                <div class="mag-header">
+                    <div class="mag-kicker">QUOTE COLLECTION</div>
+                    <div class="mag-title">{title_html}</div>
+                    <div class="mag-sub">{sub_text}</div>
+                </div>
+                {items_html}
+                <div class="mag-footer">
+                    <span class="fp">{plugin_info_text}</span>
+                    <span>{gen_time}</span>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+
+        return html_content, {
+            "full_page": True,
+            "viewport": {"width": 1600, "height": 1},
         }
 
     @staticmethod
@@ -611,107 +631,67 @@ class QuoteRenderer:
         if not quotes:
             return "", {}
 
-        header_avatar_html = ""
-
+        # 单人语录合集 -> 明亮杂志 / 语录书 风格
         if title_is_blue:
-            header_avatar_b64 = await QuoteRenderer._fetch_avatar_b64(self_qq)
-            header_avatar_html = f"""
-            <div class="header-avatar-box">
-                <img class="header-avatar" src="{header_avatar_b64}">
+            return await QuoteRenderer._render_collection_magazine(
+                quotes,
+                title,
+                self_qq,
+                current_group_id=current_group_id,
+                bot_name=bot_name,
+            )
+
+        # 多人随机语录合集 -> 明亮杂志 / 语录书 风格（头像 + 人名）
+        return await QuoteRenderer._render_collection_users_magazine(
+            quotes,
+            title,
+            self_qq,
+            current_group_id=current_group_id,
+            bot_name=bot_name,
+        )
+
+    @staticmethod
+    async def _render_collection_users_magazine(
+        quotes: List[Quote],
+        title: str,
+        self_qq: str,
+        current_group_id: Optional[str] = None,
+        bot_name: str = "AI鉴赏家",
+    ) -> Tuple[str, Dict[str, Any]]:
+        """多人随机语录合集：明亮杂志风（每条带头像 + 人名）。"""
+        qq_set = {q.qq for q in quotes}
+        results = await asyncio.gather(
+            *[QuoteRenderer._fetch_avatar_b64(uid) for uid in qq_set]
+        )
+        avatar_map = {uid: b64 for uid, b64 in zip(qq_set, results)}
+
+        items_html = ""
+        for i, q in enumerate(quotes):
+            ava = avatar_map.get(q.qq, QuoteRenderer.DEFAULT_AVATAR_B64)
+            safe_text = html.escape(q.text)
+            safe_name = html.escape(q.name)
+            time_text = QuoteRenderer._get_time_text(q.created_at)
+            src_html = QuoteRenderer._magazine_source_html(q, current_group_id)
+            cmt_html = QuoteRenderer._build_magazine_comments(
+                q, self_qq, bot_name
+            )
+
+            items_html += f"""
+            <div class="mag-user-item">
+                <img class="mag-user-av" src="{ava}">
+                <div class="mag-user-body">
+                    <div class="mag-user-top">
+                        <span class="mag-user-name">{safe_name}</span>
+                        <span class="mag-user-num">{i + 1:02d}</span>
+                    </div>
+                    <div class="mag-text">{safe_text}</div>
+                    <div class="mag-meta">{time_text}{src_html}</div>
+                    {cmt_html}
+                </div>
             </div>
             """
 
-        avatar_map = {}
-
-        if not title_is_blue:
-            qq_set = {q.qq for q in quotes}
-
-            tasks = [
-                QuoteRenderer._fetch_avatar_b64(uid)
-                for uid in qq_set
-            ]
-            results = await asyncio.gather(*tasks)
-
-            avatar_map = {
-                uid: b64
-                for uid, b64 in zip(qq_set, results)
-            }
-
-        items_html = ""
-
-        for i, q in enumerate(quotes):
-            safe_text = html.escape(q.text)
-            time_text = QuoteRenderer._get_time_text(q.created_at)
-
-            group_html = QuoteRenderer._get_group_html(q, current_group_id)
-
-            comments_html = await QuoteRenderer._prepare_comments_html(
-                q,
-                self_qq,
-                bot_name
-            )
-
-            if title_is_blue:
-                items_html += f"""
-                <div class="moments-item simple">
-                    <div class="content-col">
-                        <div class="text-body">{safe_text}</div>
-                        <div class="footer-row">
-                            <div class="footer-left">
-                                <span class="time-text">{time_text}</span>
-                                {group_html}
-                            </div>
-                            <span class="index-tag">#{i + 1}</span>
-                        </div>
-                        {comments_html}
-                    </div>
-                </div>
-                """
-
-                divider_cls = "divider"
-
-            else:
-                ava = avatar_map.get(q.qq, QuoteRenderer.DEFAULT_AVATAR_B64)
-                nickname_html = f'<div class="nickname">{html.escape(q.name)}</div>'
-
-                items_html += f"""
-                <div class="moments-item">
-                    <div class="avatar-col">
-                        <img class="avatar" src="{ava}">
-                    </div>
-                    <div class="content-col">
-                        {nickname_html}
-                        <div class="text-body">{safe_text}</div>
-                        <div class="footer-row">
-                            <div class="footer-left">
-                                <span class="time-text">{time_text}</span>
-                                {group_html}
-                            </div>
-                            <span class="index-tag">#{i + 1}</span>
-                        </div>
-                        {comments_html}
-                    </div>
-                </div>
-                """
-
-                divider_cls = "divider normal"
-
-            if i < len(quotes) - 1:
-                items_html += f'<div class="{divider_cls}"></div>'
-
-        suffix = "的随机语录"
-
-        if title_is_blue and suffix in title:
-            name_part = title.rsplit(suffix, 1)[0]
-            title_html = (
-                f'<span class="title-name">{html.escape(name_part)}</span>'
-                f'<span class="title-white">{suffix}</span>'
-            )
-        elif title_is_blue:
-            title_html = f'<span class="title-name">{html.escape(title)}</span>'
-        else:
-            title_html = f'<span class="title-white">{html.escape(title)}</span>'
-
+        title_html = html.escape(title)
         sub_text = f"已随机抽取 {len(quotes)} 条语录"
         gen_time = datetime.now().strftime("%Y-%m-%d %H:%M")
         plugin_info_text = "Menkelo/astrbot_plugin_quote_core"
@@ -721,27 +701,21 @@ class QuoteRenderer:
         <head>
             <meta charset="utf-8">
             <style>
-                {MOMENTS_CSS}
-                body {{
-                    width: 1600px;
-                }}
+                {MAGAZINE_CSS}
+                body {{ width: 1600px; }}
             </style>
         </head>
         <body>
-            <div class="list-container">
-                <div class="list-header">
-                    {header_avatar_html}
-                    <div class="header-left">
-                        <div class="header-title">{title_html}</div>
-                        <div class="header-sub">{sub_text}</div>
-                    </div>
+            <div class="mag">
+                <div class="mag-header">
+                    <div class="mag-kicker">QUOTE COLLECTION</div>
+                    <div class="mag-title">{title_html}</div>
+                    <div class="mag-sub">{sub_text}</div>
                 </div>
-                
                 {items_html}
-                
-                <div class="card-footer">
-                    <div class="footer-plugin-info">{plugin_info_text}</div>
-                    <div class="footer-gen-time">{gen_time}</div>
+                <div class="mag-footer">
+                    <span class="fp">{plugin_info_text}</span>
+                    <span>{gen_time}</span>
                 </div>
             </div>
         </body>
@@ -750,8 +724,5 @@ class QuoteRenderer:
 
         return html_content, {
             "full_page": True,
-            "viewport": {
-                "width": 1600,
-                "height": 1
-            }
+            "viewport": {"width": 1600, "height": 1},
         }
