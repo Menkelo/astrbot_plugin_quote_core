@@ -49,6 +49,19 @@ MAGAZINE_CSS = """
         border-bottom: 3px solid #e3ddcd;
     }
 
+    /* 单人合集：顶部头像版 (A) */
+    .mag-header.with-avatar {
+        display: flex;
+        align-items: center;
+        gap: 48px;
+    }
+    .mag-header-av {
+        width: 180px; height: 180px; border-radius: 50%; object-fit: cover;
+        border: 6px solid #ffffff; box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+        background: #e6dec9; flex-shrink: 0;
+    }
+    .mag-header-info { flex: 1; min-width: 0; }
+
     .mag-kicker {
         font-family: Georgia, 'Times New Roman', serif;
         font-size: 32px;
@@ -97,6 +110,7 @@ MAGAZINE_CSS = """
     .mag-body { flex: 1; min-width: 0; }
 
     .mag-text {
+        font-family: 'LXGW WenKai', 'Noto Sans SC', sans-serif;
         font-size: 60px;
         line-height: 1.5;
         color: #24211c;
@@ -165,6 +179,7 @@ MAGAZINE_CSS = """
         display: block; height: 130px;
     }
     .mag-sc-text {
+        font-family: 'LXGW WenKai', 'Noto Sans SC', sans-serif;
         font-size: 84px; font-weight: 600; line-height: 1.4; color: #24211c;
         margin-top: 8px; white-space: pre-wrap; word-break: break-word;
     }
@@ -210,6 +225,12 @@ class QuoteRenderer:
     """轻量高速版渲染"""
 
     DEFAULT_AVATAR_B64: str = ""
+    # 楷体（霞鹜文楷）网络字体：分包加载，按需获取字符分包，仅用于语录正文。
+    # 截图前会等待 document.fonts.ready（带超时兜底），加载失败则回退到无衬线字体。
+    FONT_FACE_CSS: str = (
+        '<link rel="stylesheet" '
+        'href="https://cdn.jsdelivr.net/npm/@callmebill/lxgw-wenkai-web@latest/style.css">'
+    )
     _avatar_cache: Dict[str, Tuple[float, str]] = {}
     _avatar_cache_ttl = 24 * 60 * 60
     _playwright = None
@@ -314,6 +335,29 @@ class QuoteRenderer:
                 wait_until="domcontentloaded",
                 timeout=15000
             )
+
+            # 等待网络楷体加载完成再截图，避免字体未就绪时回退；
+            # 主动触发楷体加载并等待 document.fonts.ready，最多等 4 秒，
+            # 超时则用回退字体照常出图（CDN 慢/失败都不阻塞渲染）。
+            try:
+                await page.evaluate(
+                    """
+                    () => {
+                        const trigger = (document.fonts && document.fonts.load)
+                            ? Promise.all([
+                                document.fonts.load("60px 'LXGW WenKai'", "语录"),
+                                document.fonts.load("84px 'LXGW WenKai'", "语录"),
+                              ]).then(() => document.fonts.ready)
+                            : Promise.resolve();
+                        return Promise.race([
+                            trigger,
+                            new Promise(r => setTimeout(r, 4000)),
+                        ]);
+                    }
+                    """
+                )
+            except Exception:
+                pass
 
             full_height = await page.evaluate(
                 "Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)"
@@ -499,6 +543,7 @@ class QuoteRenderer:
         <html>
         <head>
             <meta charset="utf-8">
+            {QuoteRenderer.FONT_FACE_CSS}
             <style>
                 {MAGAZINE_CSS}
                 body {{ width: 1600px; }}
@@ -548,24 +593,21 @@ class QuoteRenderer:
         current_group_id: Optional[str] = None,
         bot_name: str = "AI鉴赏家",
     ) -> Tuple[str, Dict[str, Any]]:
-        """单人语录合集：明亮杂志 / 语录书 风格。"""
-        items_html = ""
+        """单人语录合集：明亮杂志 / 语录书 风格（A 版：顶部头像）。"""
+        # 顶部展示该用户头像（self_qq 即目标用户 QQ）
+        avatar_b64 = await QuoteRenderer._fetch_avatar_b64(self_qq)
 
+        items_html = ""
         for i, q in enumerate(quotes):
             safe_text = html.escape(q.text)
-            time_text = QuoteRenderer._get_time_text(q.created_at)
-
-            src_html = QuoteRenderer._magazine_source_html(q, current_group_id)
             cmt_html = QuoteRenderer._build_magazine_comments(
                 q, self_qq, bot_name
             )
-
             items_html += f"""
             <div class="mag-item">
                 <div class="mag-num mag-serif">{i + 1:02d}</div>
                 <div class="mag-body">
                     <div class="mag-text">{safe_text}</div>
-                    <div class="mag-meta">{time_text}{src_html}</div>
                     {cmt_html}
                 </div>
             </div>
@@ -581,10 +623,7 @@ class QuoteRenderer:
         else:
             title_html = html.escape(title)
 
-        sub_text = (
-            f"已随机抽取 {len(quotes)} 条 · "
-            f"{datetime.now().strftime('%Y-%m-%d')}"
-        )
+        sub_text = f"已随机抽取 {len(quotes)} 条语录"
         gen_time = datetime.now().strftime("%Y-%m-%d %H:%M")
         plugin_info_text = "Menkelo/astrbot_plugin_quote_core"
 
@@ -592,6 +631,7 @@ class QuoteRenderer:
         <html>
         <head>
             <meta charset="utf-8">
+            {QuoteRenderer.FONT_FACE_CSS}
             <style>
                 {MAGAZINE_CSS}
                 body {{ width: 1600px; }}
@@ -599,10 +639,13 @@ class QuoteRenderer:
         </head>
         <body>
             <div class="mag">
-                <div class="mag-header">
-                    <div class="mag-kicker">QUOTE COLLECTION</div>
-                    <div class="mag-title">{title_html}</div>
-                    <div class="mag-sub">{sub_text}</div>
+                <div class="mag-header with-avatar">
+                    <img class="mag-header-av" src="{avatar_b64}">
+                    <div class="mag-header-info">
+                        <div class="mag-kicker">QUOTE COLLECTION</div>
+                        <div class="mag-title">{title_html}</div>
+                        <div class="mag-sub">{sub_text}</div>
+                    </div>
                 </div>
                 {items_html}
                 <div class="mag-footer">
@@ -700,6 +743,7 @@ class QuoteRenderer:
         <html>
         <head>
             <meta charset="utf-8">
+            {QuoteRenderer.FONT_FACE_CSS}
             <style>
                 {MAGAZINE_CSS}
                 body {{ width: 1600px; }}

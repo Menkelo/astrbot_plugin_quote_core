@@ -180,6 +180,64 @@ class QuoteStore:
         selected = random.sample(candidates, sample_size)
         return [self._safe_to_quote(x) for x in selected]
 
+    def get_draw_batch(self, group_id: Optional[str], count: int) -> List[Quote]:
+        """抽卡：一人一条优先，去重后不足 count 时允许重复凑足。
+
+        - 先每个用户随机抽 1 条（用户顺序与组内顺序均打乱）。
+        - 若得到的条数已 >= count，截取前 count 条返回。
+        - 若不足 count，再从全部候选里随机有放回补足到 count。
+        """
+        candidates = [
+            q for q in self._cache
+            if group_id is None or str(q.get("group")) == str(group_id)
+        ]
+        if not candidates:
+            return []
+
+        # 按用户分组
+        by_user: Dict[str, List[Dict[str, Any]]] = {}
+        for q in candidates:
+            by_user.setdefault(str(q.get("qq")), []).append(q)
+
+        # 一人一条
+        users = list(by_user.keys())
+        random.shuffle(users)
+        picked = [random.choice(by_user[u]) for u in users]
+        random.shuffle(picked)
+
+        if len(picked) >= count:
+            selected = picked[:count]
+        else:
+            # 重复补足（有放回）
+            selected = list(picked)
+            while len(selected) < count:
+                selected.append(random.choice(candidates))
+
+        return [self._safe_to_quote(x) for x in selected]
+
+    def get_user_draw_batch(
+        self, group_id: Optional[str], qq: str, count: int
+    ) -> List[Quote]:
+        """对单个用户抽 count 条：不足则允许重复凑足。"""
+        candidates = []
+        for q in self._cache:
+            if group_id is not None and str(q.get("group")) != str(group_id):
+                continue
+            if str(q.get("qq")) != str(qq):
+                continue
+            candidates.append(q)
+        if not candidates:
+            return []
+
+        if len(candidates) >= count:
+            selected = random.sample(candidates, count)
+        else:
+            selected = list(candidates)
+            random.shuffle(selected)
+            while len(selected) < count:
+                selected.append(random.choice(candidates))
+        return [self._safe_to_quote(x) for x in selected]
+
     def get_user_quotes(self, group_id: Optional[str], qq: str) -> List[Quote]:
         res = []
         for q in self._cache:
