@@ -64,6 +64,9 @@ class QuotesPlugin(Star):
         self._all_commands: Set[str] = self._load_all_commands()
 
         self._last_sent_qid: Dict[str, str] = {}
+        # 记录“机器人发送的语录卡片消息ID -> 语录ID”，用于按回复精确删除
+        # value: (quote_id, timestamp)
+        self._sent_quote_map: Dict[str, tuple] = {}
         self._processed_msg_ids: Dict[str, float] = {}
 
         self.regex_routes = [
@@ -329,6 +332,62 @@ class QuotesPlugin(Star):
         b64 = base64.b64encode(img_bytes).decode("ascii")
         return event.chain_result([Comp.Image(file=f"base64://{b64}")])
 
+    def _record_sent_quote(self, group_id: str, message_id: str, qid: str):
+        """记录机器人发送的语录卡片消息ID与语录ID的映射，供按回复删除使用。"""
+        if not message_id or not qid:
+            return
+        now = time.time()
+        self._sent_quote_map[str(message_id)] = (qid, now)
+        if group_id:
+            self._last_sent_qid[group_id] = qid
+        # 清理：超过1天的记录，或映射表过大时移除最旧的
+        if len(self._sent_quote_map) > 500:
+            for k in sorted(
+                self._sent_quote_map,
+                key=lambda x: self._sent_quote_map[x][1],
+            )[:100]:
+                self._sent_quote_map.pop(k, None)
+        else:
+            stale = [
+                k for k, v in self._sent_quote_map.items()
+                if now - v[1] > 86400
+            ]
+            for k in stale:
+                self._sent_quote_map.pop(k, None)
+
+    async def _send_single_quote(
+        self, event: AstrMessageEvent, img_bytes: bytes, qid: str, group_id: str
+    ) -> bool:
+        """主动发送单条语录卡片并记录其消息ID->语录ID映射。
+
+        成功主动发送返回 True（调用方不应再 yield 图片）；
+        非 aiocqhttp 或发送失败返回 False（调用方回退到默认发送）。
+        """
+        if event.get_platform_name() != "aiocqhttp":
+            return False
+        try:
+            client = event.bot
+            b64 = base64.b64encode(img_bytes).decode("ascii")
+            message = [{"type": "image", "data": {"file": f"base64://{b64}"}}]
+            gid = self._get_real_group_id(event) or str(event.get_group_id() or "")
+            if gid:
+                ret = await client.api.call_action(
+                    "send_group_msg", group_id=int(gid), message=message
+                )
+            else:
+                ret = await client.api.call_action(
+                    "send_private_msg",
+                    user_id=int(event.get_sender_id()),
+                    message=message,
+                )
+            mid = str(ret.get("message_id")) if ret else ""
+            if mid:
+                self._record_sent_quote(group_id, mid, qid)
+            return True
+        except Exception as e:
+            logger.warning(f"[QuoteCore] 主动发送语录失败，回退默认发送: {e}")
+            return False
+
     # ================= 指令注册 =================
 
     @filter.command("收录", desc="回复某条消息，将其收录到语录库中")
@@ -341,7 +400,7 @@ class QuotesPlugin(Star):
         async for res in self._logic_random(event):
             yield res
 
-    @filter.command("删除", desc="回复删除Bot发送的语录")
+    @filter.command("删除", desc="回复某条Bot发送的语录卡片以删除该条语录")
     async def cmd_delete(self, event: AstrMessageEvent):
         async for res in self._logic_delete(event):
             yield res
@@ -604,7 +663,8 @@ class QuotesPlugin(Star):
         )
 
         img_bytes = await QuoteRenderer.html_to_png_bytes(html_content, opts)
-        yield self._image_result_from_bytes(event, img_bytes)
+        if not await self._send_single_quote(event, img_bytes, quote.id, group_id):
+            yield self._image_result_from_bytes(event, img_bytes)
 
     async def _logic_delete(self, event: AstrMessageEvent):
         if self._check_consumed(event):
@@ -615,15 +675,47 @@ class QuotesPlugin(Star):
             return
 
         gid = self._get_real_group_id(event) or str(event.get_group_id())
-        qid = self._last_sent_qid.get(gid)
+
+        # 优先：用户回复了哪条语录卡片，就删除哪条
+        reply_id = None
+        for seg in event.get_messages():
+            if isinstance(seg, Comp.Reply):
+                reply_id = str(
+                    getattr(seg, "id", None)
+                    or getattr(seg, "msgId", None)
+                    or ""
+                )
+                break
+
+        qid = None
+        from_reply = False
+        if reply_id:
+            mapped = self._sent_quote_map.get(reply_id)
+            if mapped:
+                qid = mapped[0]
+                from_reply = True
+            else:
+                # 回复的不是本插件发送的语录卡片
+                yield event.plain_result("请回复某条由Bot发送的语录卡片进行删除")
+                return
+
+        # 兜底：未回复时删除本群上一条发送的语录
+        if not qid:
+            qid = self._last_sent_qid.get(gid)
 
         if not qid:
-            yield event.plain_result("无上一条语录")
+            yield event.plain_result("请回复要删除的语录卡片")
             return
 
         if await self.store.delete_quote(qid):
             yield event.plain_result("删除成功")
-            self._last_sent_qid.pop(gid, None)
+            if from_reply and reply_id:
+                self._sent_quote_map.pop(reply_id, None)
+            # 同步清理“上一条”缓存与所有指向该语录的映射
+            if self._last_sent_qid.get(gid) == qid:
+                self._last_sent_qid.pop(gid, None)
+            for k in [k for k, v in self._sent_quote_map.items() if v[0] == qid]:
+                self._sent_quote_map.pop(k, None)
         else:
             yield event.plain_result("删除失败")
 
@@ -719,7 +811,8 @@ class QuotesPlugin(Star):
         )
 
         img_bytes = await QuoteRenderer.html_to_png_bytes(html_content, opts)
-        yield self._image_result_from_bytes(event, img_bytes)
+        if not await self._send_single_quote(event, img_bytes, quote.id, group_id):
+            yield self._image_result_from_bytes(event, img_bytes)
 
     # ================= OneBot / AstrBot 兼容辅助 =================
 
