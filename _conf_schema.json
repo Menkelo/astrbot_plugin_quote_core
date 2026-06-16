@@ -24,13 +24,6 @@
         "default": "",
         "hint": "指定用于手动收录点评的特定模型；留空则不调用 LLM，也不会自动选择当前会话或其他模型"
     },
-    "max_batch_count": {
-        "description": "随机抽卡上限",
-        "type": "int",
-        "default": 10,
-        "slider": { "min": 5, "max": 50, "step": 5 },
-        "hint": "限制 /语录 20 这种指令的最大数量，防止生成过长图片"
-    },
     "ignore_prefix": {
         "description": "无需前缀触发",
         "type": "bool",

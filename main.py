@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import time
 import secrets
-import random
 import re
 import json
 import os
@@ -398,7 +397,7 @@ class QuotesPlugin(Star):
         async for res in self._logic_add(event):
             yield res
 
-    @filter.command("语录", desc="随机抽取语录。支持：/语录、/语录 5、/语录 @某人")
+    @filter.command("语录", desc="随机抽取 1 条语录。支持：/语录、/语录 @某人")
     async def cmd_random(self, event: AstrMessageEvent):
         async for res in self._logic_random(event):
             yield res
@@ -549,7 +548,6 @@ class QuotesPlugin(Star):
         search_group = None if is_global else group_id
 
         target_qq = None
-        count = 1
 
         for seg in event.message_obj.message:
             if isinstance(seg, Comp.At):
@@ -559,79 +557,10 @@ class QuotesPlugin(Star):
         if not target_qq and "自己" in event.message_str:
             target_qq = str(event.get_sender_id())
 
-        plain_text_only = "".join([
-            s.text
-            for s in event.message_obj.message
-            if isinstance(s, Comp.Plain)
-        ])
-
-        nums = re.findall(r"\d+", plain_text_only)
-        if nums:
-            count = min(int(nums[0]), self.config.get("max_batch_count", 10))
-
         service = OneBotService(event.bot)
 
         bot_qq = self._get_self_id(event) or "10000"
         bot_name = "Bot"
-
-        if not target_qq and count > 1:
-            quotes = self.store.get_random_batch(search_group, count)
-            if not quotes:
-                yield event.plain_result("该群组暂无语录")
-                return
-
-            names = await asyncio.gather(*[
-                service.get_user_name(group_id, q.qq)
-                for q in quotes
-            ])
-            for q, name in zip(quotes, names):
-                q.name = name
-
-            if is_global:
-                group_names = await asyncio.gather(*[
-                    service.get_group_name(q.group)
-                    for q in quotes
-                ])
-                for q, gn in zip(quotes, group_names):
-                    setattr(q, "temp_source_label", gn)
-
-            html_content, opts = await QuoteRenderer.render_merged_card(
-                quotes,
-                "随机语录抽卡",
-                bot_qq,
-                title_is_blue=False,
-                current_group_id=group_id,
-                bot_name=bot_name,
-            )
-
-            img_bytes = await QuoteRenderer.html_to_png_bytes(html_content, opts)
-            yield self._image_result_from_bytes(event, img_bytes)
-            return
-
-        if target_qq and count > 1:
-            quotes = self.store.get_user_quotes(search_group, target_qq)
-            if not quotes:
-                yield event.plain_result("该用户暂无语录")
-                return
-
-            sel = random.sample(quotes, min(len(quotes), count))
-            name = await service.get_user_name(group_id, target_qq)
-
-            for q in sel:
-                q.name = name
-
-            html_content, opts = await QuoteRenderer.render_merged_card(
-                sel,
-                f"{name}的随机语录",
-                target_qq,
-                title_is_blue=True,
-                current_group_id=group_id,
-                bot_name=bot_name,
-            )
-
-            img_bytes = await QuoteRenderer.html_to_png_bytes(html_content, opts)
-            yield self._image_result_from_bytes(event, img_bytes)
-            return
 
         quote = self.store.get_random(search_group, target_qq)
         if not quote:
