@@ -499,10 +499,12 @@ class QuoteRenderer:
         current_group_id: Optional[str] = None,
         bot_name: str = "AI鉴赏家",
     ) -> Tuple[str, Dict[str, Any]]:
-        """单人语录合集：明亮杂志 / 语录书 风格（大序号列，无时间/无数量）。"""
+        """单人语录合集：明亮杂志 / 语录书 风格（大序号列，无数量栏）。"""
         items_html = ""
         for i, q in enumerate(quotes):
             safe_text = html.escape(q.text)
+            time_text = QuoteRenderer._get_time_text(q.created_at)
+            src_html = QuoteRenderer._magazine_source_html(q, current_group_id)
             cmt_html = QuoteRenderer._build_magazine_comments(
                 q, self_qq, bot_name
             )
@@ -511,6 +513,7 @@ class QuoteRenderer:
                 <div class="mag-num mag-serif">{i + 1:02d}</div>
                 <div class="mag-body">
                     <div class="mag-text">{safe_text}</div>
+                    <div class="mag-meta">{time_text}{src_html}</div>
                     {cmt_html}
                 </div>
             </div>
@@ -610,13 +613,10 @@ class QuoteRenderer:
             ava = avatar_map.get(q.qq, QuoteRenderer.DEFAULT_AVATAR_B64)
             safe_text = html.escape(q.text)
             safe_name = html.escape(q.name)
+            time_text = QuoteRenderer._get_time_text(q.created_at)
             src_html = QuoteRenderer._magazine_source_html(q, current_group_id)
             cmt_html = QuoteRenderer._build_magazine_comments(
                 q, self_qq, bot_name
-            )
-            # 仅在 global 模式有来源群标签时显示 meta 行（已去掉时间栏）
-            meta_html = (
-                f'<div class="mag-meta">{src_html}</div>' if src_html else ""
             )
 
             items_html += f"""
@@ -628,7 +628,7 @@ class QuoteRenderer:
                         <span class="mag-user-num">{i + 1:02d}</span>
                     </div>
                     <div class="mag-text">{safe_text}</div>
-                    {meta_html}
+                    <div class="mag-meta">{time_text}{src_html}</div>
                     {cmt_html}
                 </div>
             </div>
