@@ -116,29 +116,30 @@ MAGAZINE_CSS = """
 
     /* ============ C3 单人合集（引号编辑风 · 右上头像） ============ */
     .c3-head {
-        display: flex; justify-content: space-between; align-items: flex-start;
-        padding: 80px 98px 54px 98px; border-bottom: 3px solid #e3ddcd;
+        display: flex; justify-content: space-between; align-items: center;
+        padding: 60px 98px; border-bottom: 3px solid #e3ddcd;
     }
+    .c3-head-info { min-width: 0; }
     .c3-title {
-        font-size: 84px; font-weight: 700; color: #b08a3e; margin-top: 14px;
-        line-height: 1.15; word-break: break-word;
+        font-size: 80px; font-weight: 700; color: #b08a3e; margin-top: 16px;
+        line-height: 1.1; word-break: break-word;
     }
-    .c3-head-av { width: 196px; height: 196px; }
-    .c3-item { padding: 56px 98px; border-bottom: 2px solid #ece6d7; }
+    .c3-head-av { width: 180px; height: 180px; }
+    .c3-item { padding: 54px 98px; border-bottom: 2px solid #ece6d7; }
     .c3-item:last-of-type { border-bottom: none; }
     .c3-qline { display: flex; gap: 36px; align-items: flex-start; }
     .c3-qm {
         font-family: Georgia, 'Times New Roman', serif; font-size: 120px;
-        color: #dcd0b2; line-height: 0.8; flex-shrink: 0;
+        color: #dcd0b2; line-height: 0.78; flex-shrink: 0;
     }
+    .c3-col { flex: 1; min-width: 0; }
     .c3-qt {
-        font-size: 64px; line-height: 1.5; color: #24211c; flex: 1; min-width: 0;
+        font-size: 64px; line-height: 1.5; color: #24211c;
         white-space: pre-wrap; word-break: break-word;
     }
     .c3-meta {
-        font-size: 31px; color: #a89f8a; margin: 16px 0 0 156px; letter-spacing: 1px;
+        font-size: 31px; color: #a89f8a; margin-top: 18px; letter-spacing: 1px;
     }
-    .c3-cmt { margin-left: 156px; }
 
     /* ============ M3 多人合集（左头像名录） ============ */
     .m3-head {
@@ -475,15 +476,16 @@ class QuoteRenderer:
             cmt_html = QuoteRenderer._build_magazine_comments(
                 q, self_qq, bot_name
             )
-            cmt_wrap = f'<div class="c3-cmt">{cmt_html}</div>' if cmt_html else ""
             items_html += f"""
             <div class="c3-item">
                 <div class="c3-qline">
                     <span class="c3-qm">&ldquo;</span>
-                    <div class="c3-qt">{safe_text}</div>
+                    <div class="c3-col">
+                        <div class="c3-qt">{safe_text}</div>
+                        {cmt_html}
+                        <div class="c3-meta">{time_text}{src_html}</div>
+                    </div>
                 </div>
-                <div class="c3-meta">{time_text}{src_html}</div>
-                {cmt_wrap}
             </div>
             """
 
@@ -506,7 +508,7 @@ class QuoteRenderer:
         <body>
             <div class="mag">
                 <div class="c3-head">
-                    <div>
+                    <div class="c3-head-info">
                         <div class="mag-kicker">QUOTE COLLECTION</div>
                         <div class="c3-title">{title_html}</div>
                     </div>
