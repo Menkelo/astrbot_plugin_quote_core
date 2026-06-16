@@ -181,11 +181,11 @@ class QuoteStore:
         return [self._safe_to_quote(x) for x in selected]
 
     def get_draw_batch(self, group_id: Optional[str], count: int) -> List[Quote]:
-        """抽卡：一人一条优先，去重后不足 count 时允许重复凑足。
+        """抽卡：一人一条优先，最多 count 条，**不重复**。
 
-        - 先每个用户随机抽 1 条（用户顺序与组内顺序均打乱）。
-        - 若得到的条数已 >= count，截取前 count 条返回。
-        - 若不足 count，再从全部候选里随机有放回补足到 count。
+        - 先每个用户随机抽 1 条（用户与顺序均打乱）。
+        - 若仍不足 count，再用各用户剩余的语录（不重复）补足。
+        - 候选总数不足 count 时，有几条返回几条，绝不重复同一条。
         """
         candidates = [
             q for q in self._cache
@@ -199,26 +199,33 @@ class QuoteStore:
         for q in candidates:
             by_user.setdefault(str(q.get("qq")), []).append(q)
 
-        # 一人一条
+        # 第一轮：一人一条
         users = list(by_user.keys())
         random.shuffle(users)
-        picked = [random.choice(by_user[u]) for u in users]
+        picked: List[Dict[str, Any]] = []
+        picked_ids = set()
+        for u in users:
+            q = random.choice(by_user[u])
+            picked.append(q)
+            picked_ids.add(id(q))
+
+        # 不足则用剩余的（不重复）语录补足
+        if len(picked) < count:
+            remaining = [q for q in candidates if id(q) not in picked_ids]
+            random.shuffle(remaining)
+            for q in remaining:
+                if len(picked) >= count:
+                    break
+                picked.append(q)
+
         random.shuffle(picked)
-
-        if len(picked) >= count:
-            selected = picked[:count]
-        else:
-            # 重复补足（有放回）
-            selected = list(picked)
-            while len(selected) < count:
-                selected.append(random.choice(candidates))
-
+        selected = picked[:count]
         return [self._safe_to_quote(x) for x in selected]
 
     def get_user_draw_batch(
         self, group_id: Optional[str], qq: str, count: int
     ) -> List[Quote]:
-        """对单个用户抽 count 条：不足则允许重复凑足。"""
+        """对单个用户抽最多 count 条：**不重复**，不足则有几条出几条。"""
         candidates = []
         for q in self._cache:
             if group_id is not None and str(q.get("group")) != str(group_id):
@@ -229,13 +236,8 @@ class QuoteStore:
         if not candidates:
             return []
 
-        if len(candidates) >= count:
-            selected = random.sample(candidates, count)
-        else:
-            selected = list(candidates)
-            random.shuffle(selected)
-            while len(selected) < count:
-                selected.append(random.choice(candidates))
+        sample_size = min(len(candidates), count)
+        selected = random.sample(candidates, sample_size)
         return [self._safe_to_quote(x) for x in selected]
 
     def get_user_quotes(self, group_id: Optional[str], qq: str) -> List[Quote]:
