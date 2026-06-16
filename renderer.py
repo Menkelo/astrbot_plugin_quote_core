@@ -39,73 +39,17 @@ MAGAZINE_CSS = """
         color: #1c1a17;
     }
 
-    .mag-serif {
-        font-family: Georgia, 'Times New Roman', 'Source Han Serif SC',
-                     'Noto Serif SC', 'Songti SC', serif;
-    }
-
-    .mag-header {
-        padding: 96px 96px 64px 96px;
-        border-bottom: 3px solid #e3ddcd;
-    }
-
+    /* ---- 共享 token ---- */
     .mag-kicker {
         font-family: Georgia, 'Times New Roman', serif;
-        font-size: 32px;
-        letter-spacing: 10px;
+        font-size: 30px;
+        letter-spacing: 11px;
         color: #b08a3e;
         font-weight: 700;
     }
-
-    .mag-title {
-        font-size: 90px;
-        font-weight: 700;
-        color: #1c1a17;
-        margin-top: 18px;
-        line-height: 1.15;
-        word-break: break-word;
-    }
-
-    .mag-title .m-name { color: #b08a3e; }
-
-    .mag-item {
-        display: flex;
-        gap: 54px;
-        padding: 66px 96px;
-        border-bottom: 2px solid #ece6d7;
-        align-items: flex-start;
-    }
-
-    .mag-item:last-of-type { border-bottom: none; }
-
-    .mag-num {
-        font-size: 104px;
-        font-weight: 700;
-        color: #dacfb3;
-        line-height: 0.9;
-        min-width: 160px;
-        flex-shrink: 0;
-    }
-
-    .mag-body { flex: 1; min-width: 0; }
-
-    .mag-text {
-        font-size: 60px;
-        line-height: 1.5;
-        color: #24211c;
-        word-break: break-word;
-        white-space: pre-wrap;
-    }
-
-    .mag-meta {
-        font-size: 32px;
-        color: #a89f8a;
-        margin-top: 22px;
-        letter-spacing: 1px;
-    }
-
-    .mag-meta .dot { margin: 0 16px; color: #cdbf9f; }
+    .mag-serif { font-family: Georgia, 'Times New Roman', serif; }
     .mag-src { color: #b08a3e; }
+    .dot { margin: 0 16px; color: #cdbf9f; }
 
     .mag-cmt {
         margin-top: 28px;
@@ -117,85 +61,118 @@ MAGAZINE_CSS = """
         padding: 24px 34px;
         border-radius: 0 14px 14px 0;
     }
-
     .mag-cmt + .mag-cmt { margin-top: 14px; }
     .mag-cmt b { color: #a9863c; font-weight: 700; }
 
     .mag-footer {
-        padding: 48px 96px 64px 96px;
+        padding: 48px 98px 60px 98px;
         background: #f2eede;
         border-top: 3px solid #e3ddcd;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 28px;
-        color: #b3a98f;
+    }
+    .mag-footer .fp {
+        font-size: 28px; color: #b3a98f; font-weight: 700; letter-spacing: 1px;
     }
 
-    .mag-footer .fp { font-weight: 700; letter-spacing: 1px; }
-
-    /* ---- 单卡 (/语录) ---- */
-    .mag-sc-top { padding: 96px 100px 0 100px; }
-    .mag-sc-user {
-        display: flex; align-items: center; gap: 38px;
-        margin: 30px 0 8px 0;
-    }
-    .mag-sc-av {
-        width: 160px; height: 160px; border-radius: 50%;
-        object-fit: cover; border: 5px solid #ffffff;
-        box-shadow: 0 8px 22px rgba(0,0,0,0.18); background: #e6dec9;
+    .mag-av {
+        border-radius: 50%; object-fit: cover; background: #e6dec9;
+        border: 6px solid #ffffff; box-shadow: 0 8px 24px rgba(0,0,0,0.18);
         flex-shrink: 0;
     }
-    .mag-sc-name {
-        font-size: 64px; font-weight: 700; color: #b08a3e; line-height: 1.1;
-        word-break: break-word;
-    }
-    .mag-sc-uid { font-size: 30px; color: #a89f8a; margin-top: 10px; }
-    .mag-sc-quote { padding: 0 100px; position: relative; }
-    .mag-sc-qmark {
+
+    /* ============ B 单卡（右上头像 · 大字编辑风） ============ */
+    .b-card { position: relative; overflow: hidden; padding: 104px 120px 70px 120px; }
+    .b-wm {
+        position: absolute; top: -70px; left: 32px;
         font-family: Georgia, 'Times New Roman', serif;
-        font-size: 240px; line-height: 0.7; color: #e4dabc;
-        display: block; height: 130px;
+        font-size: 500px; line-height: 1; color: rgba(176,138,62,0.09);
+        pointer-events: none; z-index: 0;
     }
-    .mag-sc-text {
-        font-size: 84px; font-weight: 600; line-height: 1.4; color: #24211c;
-        margin-top: 8px; white-space: pre-wrap; word-break: break-word;
+    .b-top {
+        display: flex; justify-content: space-between; align-items: flex-start;
+        position: relative; z-index: 1;
     }
-    .mag-sc-body { padding: 24px 100px 72px 100px; }
-    .mag-sc-meta {
-        font-size: 33px; color: #a89f8a; margin-top: 40px;
-        letter-spacing: 1px; display: flex; align-items: center;
-    }
-    .mag-idx {
+    .b-top-left { display: flex; flex-direction: column; gap: 30px; }
+    .b-idx {
         font-family: Georgia, 'Times New Roman', serif; font-weight: 700;
         color: #b08a3e; border: 3px solid #ddcfa8; border-radius: 999px;
-        padding: 8px 28px; font-size: 32px; margin-right: 26px;
+        padding: 10px 34px; font-size: 32px; align-self: flex-start;
     }
+    .b-av { width: 210px; height: 210px; }
+    .b-qtext {
+        position: relative; z-index: 1; font-size: 100px; line-height: 1.42;
+        font-weight: 700; color: #211e19; margin: 74px 0 38px 0;
+        white-space: pre-wrap; word-break: break-word;
+    }
+    .b-byline {
+        position: relative; z-index: 1; font-size: 44px; color: #b08a3e;
+        font-weight: 600; margin-bottom: 14px; word-break: break-word;
+    }
+    .b-byline .b-who { font-weight: 700; }
+    .b-time {
+        position: relative; z-index: 1; font-size: 33px; color: #a89f8a;
+        margin-bottom: 50px; letter-spacing: 1px;
+    }
+    .b-card .mag-cmt { position: relative; z-index: 1; }
 
-    /* ---- 多人合集 (/语录 N) ---- */
-    .mag-user-item {
-        display: flex; gap: 46px; padding: 64px 100px;
+    /* ============ C3 单人合集（引号编辑风 · 右上头像） ============ */
+    .c3-head {
+        display: flex; justify-content: space-between; align-items: flex-start;
+        padding: 80px 98px 54px 98px; border-bottom: 3px solid #e3ddcd;
+    }
+    .c3-title {
+        font-size: 84px; font-weight: 700; color: #b08a3e; margin-top: 14px;
+        line-height: 1.15; word-break: break-word;
+    }
+    .c3-head-av { width: 196px; height: 196px; }
+    .c3-item { padding: 56px 98px; border-bottom: 2px solid #ece6d7; }
+    .c3-item:last-of-type { border-bottom: none; }
+    .c3-qline { display: flex; gap: 36px; align-items: flex-start; }
+    .c3-qm {
+        font-family: Georgia, 'Times New Roman', serif; font-size: 120px;
+        color: #dcd0b2; line-height: 0.8; flex-shrink: 0;
+    }
+    .c3-qt {
+        font-size: 64px; line-height: 1.5; color: #24211c; flex: 1; min-width: 0;
+        white-space: pre-wrap; word-break: break-word;
+    }
+    .c3-meta {
+        font-size: 31px; color: #a89f8a; margin: 16px 0 0 156px; letter-spacing: 1px;
+    }
+    .c3-cmt { margin-left: 156px; }
+
+    /* ============ M3 多人合集（左头像名录） ============ */
+    .m3-head {
+        padding: 76px 98px 50px 98px; border-bottom: 3px solid #e3ddcd;
+    }
+    .m3-title {
+        font-size: 84px; font-weight: 700; color: #1c1a17; margin-top: 14px;
+        line-height: 1.15; word-break: break-word;
+    }
+    .m3-item {
+        display: flex; gap: 44px; padding: 56px 98px;
         border-bottom: 2px solid #ece6d7; align-items: flex-start;
     }
-    .mag-user-item:last-of-type { border-bottom: none; }
-    .mag-user-av {
-        width: 135px; height: 135px; border-radius: 50%; object-fit: cover;
-        border: 4px solid #ffffff; box-shadow: 0 6px 18px rgba(0,0,0,0.16);
-        background: #e6dec9; flex-shrink: 0;
-    }
-    .mag-user-body { flex: 1; min-width: 0; }
-    .mag-user-top {
+    .m3-item:last-of-type { border-bottom: none; }
+    .m3-av { width: 164px; height: 164px; }
+    .m3-bd { flex: 1; min-width: 0; }
+    .m3-top {
         display: flex; align-items: baseline; justify-content: space-between;
         gap: 24px;
     }
-    .mag-user-name {
+    .m3-nm {
         font-size: 48px; font-weight: 700; color: #b08a3e; word-break: break-word;
     }
-    .mag-user-num {
-        font-size: 64px; font-weight: 700; color: #dacfb3; line-height: 1;
-        flex-shrink: 0;
+    .m3-num {
+        font-family: Georgia, 'Times New Roman', serif; font-size: 64px;
+        font-weight: 700; color: #dacfb3; line-height: 1; flex-shrink: 0;
     }
-    .mag-user-body .mag-text { margin-top: 14px; }
+    .m3-qt {
+        font-size: 58px; line-height: 1.5; color: #24211c; margin-top: 14px;
+        white-space: pre-wrap; word-break: break-word;
+    }
+    .m3-meta {
+        font-size: 31px; color: #a89f8a; margin-top: 16px; letter-spacing: 1px;
+    }
 """
 
 
@@ -429,7 +406,7 @@ class QuoteRenderer:
         bot_qq: str = "10000",
         bot_name: str = "AI鉴赏家"
     ) -> Tuple[str, Dict[str, Any]]:
-        """单条语录：明亮杂志 / 语录书 风格的特写页。"""
+        """单条语录：B 版 — 右上头像 · 大字编辑风。"""
         avatar_b64 = await QuoteRenderer._fetch_avatar_b64(q.qq)
 
         safe_text = html.escape(q.text)
@@ -438,12 +415,7 @@ class QuoteRenderer:
         count_text = f"#{index} / {total}" if total > 0 else "AstrBot"
 
         src_html = QuoteRenderer._magazine_source_html(q, current_group_id)
-        uid_html = (
-            f'<div class="mag-sc-uid">{src_html}</div>' if src_html else ""
-        )
         cmt_html = QuoteRenderer._build_magazine_comments(q, bot_qq, bot_name)
-
-        gen_time = datetime.now().strftime("%Y-%m-%d %H:%M")
         plugin_info_text = "Menkelo/astrbot_plugin_quote_core"
 
         html_content = f"""
@@ -457,29 +429,22 @@ class QuoteRenderer:
         </head>
         <body>
             <div class="mag">
-                <div class="mag-sc-top">
-                    <div class="mag-kicker">QUOTE</div>
-                    <div class="mag-sc-user">
-                        <img class="mag-sc-av" src="{avatar_b64}">
-                        <div>
-                            <div class="mag-sc-name">{safe_name}</div>
-                            {uid_html}
+                <div class="b-card">
+                    <span class="b-wm">&ldquo;</span>
+                    <div class="b-top">
+                        <div class="b-top-left">
+                            <div class="mag-kicker">QUOTE</div>
+                            <span class="b-idx">{count_text}</span>
                         </div>
+                        <img class="mag-av b-av" src="{avatar_b64}">
                     </div>
-                </div>
-                <div class="mag-sc-quote">
-                    <span class="mag-sc-qmark">&ldquo;</span>
-                    <div class="mag-sc-text">{safe_text}</div>
-                </div>
-                <div class="mag-sc-body">
+                    <div class="b-qtext">{safe_text}</div>
+                    <div class="b-byline">—— <span class="b-who">{safe_name}</span>{src_html}</div>
+                    <div class="b-time">{time_text}</div>
                     {cmt_html}
-                    <div class="mag-sc-meta">
-                        <span class="mag-idx">{count_text}</span>{time_text}
-                    </div>
                 </div>
                 <div class="mag-footer">
                     <span class="fp">{plugin_info_text}</span>
-                    <span>{gen_time}</span>
                 </div>
             </div>
         </body>
@@ -499,7 +464,9 @@ class QuoteRenderer:
         current_group_id: Optional[str] = None,
         bot_name: str = "AI鉴赏家",
     ) -> Tuple[str, Dict[str, Any]]:
-        """单人语录合集：明亮杂志 / 语录书 风格（大序号列，无数量栏）。"""
+        """单人语录合集：C3 — 引号编辑风 · 右上头像。标题仅名字。"""
+        avatar_b64 = await QuoteRenderer._fetch_avatar_b64(self_qq)
+
         items_html = ""
         for i, q in enumerate(quotes):
             safe_text = html.escape(q.text)
@@ -508,28 +475,23 @@ class QuoteRenderer:
             cmt_html = QuoteRenderer._build_magazine_comments(
                 q, self_qq, bot_name
             )
+            cmt_wrap = f'<div class="c3-cmt">{cmt_html}</div>' if cmt_html else ""
             items_html += f"""
-            <div class="mag-item">
-                <div class="mag-num mag-serif">{i + 1:02d}</div>
-                <div class="mag-body">
-                    <div class="mag-text">{safe_text}</div>
-                    <div class="mag-meta">{time_text}{src_html}</div>
-                    {cmt_html}
+            <div class="c3-item">
+                <div class="c3-qline">
+                    <span class="c3-qm">&ldquo;</span>
+                    <div class="c3-qt">{safe_text}</div>
                 </div>
+                <div class="c3-meta">{time_text}{src_html}</div>
+                {cmt_wrap}
             </div>
             """
 
-        # 标题：把人名高亮，"的随机语录" 保持深色
+        # 标题仅保留名字（去掉 "的随机语录"）
         suffix = "的随机语录"
-        if suffix in title:
-            name_part = title.rsplit(suffix, 1)[0]
-            title_html = (
-                f'<span class="m-name">{html.escape(name_part)}</span>{suffix}'
-            )
-        else:
-            title_html = html.escape(title)
+        name_only = title.rsplit(suffix, 1)[0] if suffix in title else title
+        title_html = html.escape(name_only)
 
-        gen_time = datetime.now().strftime("%Y-%m-%d %H:%M")
         plugin_info_text = "Menkelo/astrbot_plugin_quote_core"
 
         html_content = f"""
@@ -543,14 +505,16 @@ class QuoteRenderer:
         </head>
         <body>
             <div class="mag">
-                <div class="mag-header">
-                    <div class="mag-kicker">QUOTE COLLECTION</div>
-                    <div class="mag-title">{title_html}</div>
+                <div class="c3-head">
+                    <div>
+                        <div class="mag-kicker">QUOTE COLLECTION</div>
+                        <div class="c3-title">{title_html}</div>
+                    </div>
+                    <img class="mag-av c3-head-av" src="{avatar_b64}">
                 </div>
                 {items_html}
                 <div class="mag-footer">
                     <span class="fp">{plugin_info_text}</span>
-                    <span>{gen_time}</span>
                 </div>
             </div>
         </body>
@@ -601,7 +565,7 @@ class QuoteRenderer:
         current_group_id: Optional[str] = None,
         bot_name: str = "AI鉴赏家",
     ) -> Tuple[str, Dict[str, Any]]:
-        """多人随机语录合集：明亮杂志风（每条带头像 + 人名）。"""
+        """多人随机语录合集：M3 — 左头像名录。"""
         qq_set = {q.qq for q in quotes}
         results = await asyncio.gather(
             *[QuoteRenderer._fetch_avatar_b64(uid) for uid in qq_set]
@@ -620,22 +584,21 @@ class QuoteRenderer:
             )
 
             items_html += f"""
-            <div class="mag-user-item">
-                <img class="mag-user-av" src="{ava}">
-                <div class="mag-user-body">
-                    <div class="mag-user-top">
-                        <span class="mag-user-name">{safe_name}</span>
-                        <span class="mag-user-num">{i + 1:02d}</span>
+            <div class="m3-item">
+                <img class="mag-av m3-av" src="{ava}">
+                <div class="m3-bd">
+                    <div class="m3-top">
+                        <span class="m3-nm">{safe_name}</span>
+                        <span class="m3-num">{i + 1:02d}</span>
                     </div>
-                    <div class="mag-text">{safe_text}</div>
-                    <div class="mag-meta">{time_text}{src_html}</div>
+                    <div class="m3-qt">{safe_text}</div>
+                    <div class="m3-meta">{time_text}{src_html}</div>
                     {cmt_html}
                 </div>
             </div>
             """
 
         title_html = html.escape(title)
-        gen_time = datetime.now().strftime("%Y-%m-%d %H:%M")
         plugin_info_text = "Menkelo/astrbot_plugin_quote_core"
 
         html_content = f"""
@@ -649,14 +612,13 @@ class QuoteRenderer:
         </head>
         <body>
             <div class="mag">
-                <div class="mag-header">
+                <div class="m3-head">
                     <div class="mag-kicker">QUOTE COLLECTION</div>
-                    <div class="mag-title">{title_html}</div>
+                    <div class="m3-title">{title_html}</div>
                 </div>
                 {items_html}
                 <div class="mag-footer">
                     <span class="fp">{plugin_info_text}</span>
-                    <span>{gen_time}</span>
                 </div>
             </div>
         </body>
