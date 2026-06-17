@@ -290,22 +290,35 @@ class QuoteRenderer:
             # 默认渲染路径保持“不等字体”的高速行为不变）。
             wait_font_family = options.get("wait_font_family")
             if wait_font_family:
+                selectors = options.get("wait_font_selectors")
+                if not selectors:
+                    one = options.get("wait_font_selector")
+                    selectors = [one] if one else ["body"]
                 try:
                     await page.evaluate(
                         """
                         async (cfg) => {
                             const family = cfg.family;
-                            const selector = cfg.selector;
+                            const selectors = cfg.selectors || ['body'];
                             const timeout = cfg.timeout || 7000;
-                            const el = selector
-                                ? document.querySelector(selector)
-                                : document.body;
-                            const text = el ? (el.textContent || '') : '';
-                            const spec = `100px '${family}'`;
+                            const targets = [];
+                            for (const sel of selectors) {
+                                document.querySelectorAll(sel).forEach(el => {
+                                    const w = getComputedStyle(el).fontWeight || '400';
+                                    const t = el.textContent || '';
+                                    if (t.trim()) targets.push([w, t]);
+                                });
+                            }
+                            if (targets.length === 0) targets.push(['400', '测试样张']);
+                            const spec = (w) => `${w} 100px '${family}'`;
+                            const allReady = () =>
+                                targets.every(([w, t]) => document.fonts.check(spec(w), t));
                             const deadline = Date.now() + timeout;
                             while (Date.now() < deadline) {
-                                try { await document.fonts.load(spec, text); } catch (e) {}
-                                if (document.fonts.check(spec, text)) return true;
+                                for (const [w, t] of targets) {
+                                    try { await document.fonts.load(spec(w), t); } catch (e) {}
+                                }
+                                if (allReady()) return true;
                                 await new Promise(r => setTimeout(r, 120));
                             }
                             return false;
@@ -313,8 +326,8 @@ class QuoteRenderer:
                         """,
                         {
                             "family": wait_font_family,
-                            "selector": options.get("wait_font_selector"),
-                            "timeout": int(options.get("wait_font_timeout", 7000)),
+                            "selectors": selectors,
+                            "timeout": int(options.get("wait_font_timeout", 8000)),
                         },
                     )
                 except Exception:
@@ -458,9 +471,10 @@ class QuoteRenderer:
         <html>
         <head>
             <meta charset="utf-8">
-            <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+            <link rel="preconnect" href="https://fonts.googleapis.com">
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
             <link rel="stylesheet"
-                  href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5.2.9/index.css">
+                  href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700;900&display=swap">
             <style>
                 {MAGAZINE_CSS}
                 body {{ width: 1600px; }}
@@ -502,8 +516,8 @@ class QuoteRenderer:
             "viewport": {"width": 1600, "height": 1},
             # 仅单条卡片等待宋体加载完成再截图，确保字体生效
             "wait_font_family": "Noto Serif SC",
-            "wait_font_selector": ".b-qtext",
-            "wait_font_timeout": 7000,
+            "wait_font_selectors": [".b-qtext", ".b-byline"],
+            "wait_font_timeout": 8000,
         }
 
     @staticmethod
