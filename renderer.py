@@ -294,6 +294,19 @@ class QuoteRenderer:
                 if not selectors:
                     one = options.get("wait_font_selector")
                     selectors = [one] if one else ["body"]
+                # 先等网络空闲（字体文件下载完）+ 浏览器字体就绪，
+                # 再做逐字重精确校验，最大限度对齐兄弟插件的加载路径。
+                try:
+                    await page.wait_for_load_state(
+                        "networkidle",
+                        timeout=int(options.get("wait_font_timeout", 8000)),
+                    )
+                except Exception:
+                    pass
+                try:
+                    await page.evaluate("document.fonts.ready")
+                except Exception:
+                    pass
                 try:
                     await page.evaluate(
                         """
@@ -471,11 +484,8 @@ class QuoteRenderer:
         <html>
         <head>
             <meta charset="utf-8">
-            <link rel="preconnect" href="https://fonts.googleapis.com">
-            <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-            <link rel="stylesheet"
-                  href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700;900&display=swap">
             <style>
+                @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700;900&display=swap');
                 {MAGAZINE_CSS}
                 body {{ width: 1600px; }}
                 /* 单条语录：本文用思源宋体（衬线/宋体），系统宋体兜底 */
