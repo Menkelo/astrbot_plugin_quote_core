@@ -286,6 +286,15 @@ class QuoteRenderer:
                 timeout=15000
             )
 
+            # 可选：用 add_style_tag 确定性加载字体 CSS（Playwright 会等样式表
+            # 下载并注册完成才返回，避免 @import 异步时机不确定导致字体回退）。
+            wait_font_css_url = options.get("wait_font_css_url")
+            if wait_font_css_url:
+                try:
+                    await page.add_style_tag(url=wait_font_css_url)
+                except Exception:
+                    pass
+
             # 可选：等待指定 Web 字体加载完成再截图（仅在 options 指定时启用，
             # 默认渲染路径保持“不等字体”的高速行为不变）。
             wait_font_family = options.get("wait_font_family")
@@ -519,6 +528,7 @@ class QuoteRenderer:
             "viewport": {"width": 1600, "height": 1},
             # 仅单条卡片等待宋体加载完成再截图，确保字体生效
             "wait_font_family": "Noto Serif SC",
+            "wait_font_css_url": "https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700;900&display=swap",
             "wait_font_selectors": [".b-qtext", ".b-byline"],
             "wait_font_timeout": 8000,
         }
