@@ -294,19 +294,8 @@ class QuoteRenderer:
                 if not selectors:
                     one = options.get("wait_font_selector")
                     selectors = [one] if one else ["body"]
-                # 先等网络空闲（字体文件下载完）+ 浏览器字体就绪，
-                # 再做逐字重精确校验，最大限度对齐兄弟插件的加载路径。
-                try:
-                    await page.wait_for_load_state(
-                        "networkidle",
-                        timeout=int(options.get("wait_font_timeout", 8000)),
-                    )
-                except Exception:
-                    pass
-                try:
-                    await page.evaluate("document.fonts.ready")
-                except Exception:
-                    pass
+                # 不再死等 networkidle（头像等请求会拖慢），改为主动加载并逐字重
+                # 校验字体本身：字体就绪即截图，通常远快于网络空闲。
                 try:
                     await page.evaluate(
                         """
@@ -340,7 +329,7 @@ class QuoteRenderer:
                         {
                             "family": wait_font_family,
                             "selectors": selectors,
-                            "timeout": int(options.get("wait_font_timeout", 8000)),
+                            "timeout": int(options.get("wait_font_timeout", 6000)),
                         },
                     )
                 except Exception:
