@@ -487,7 +487,6 @@ class QuoteRenderer:
         <head>
             <meta charset="utf-8">
             <style>
-                @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700;900&display=swap');
                 {MAGAZINE_CSS}
                 body {{ width: 1600px; }}
                 /* 单条语录：本文用思源宋体（衬线/宋体），系统宋体兜底 */
@@ -528,7 +527,7 @@ class QuoteRenderer:
             "viewport": {"width": 1600, "height": 1},
             # 仅单条卡片等待宋体加载完成再截图，确保字体生效
             "wait_font_family": "Noto Serif SC",
-            "wait_font_css_url": "https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700;900&display=swap",
+            "wait_font_css_url": "https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700&display=swap",
             "wait_font_selectors": [".b-qtext", ".b-byline"],
             "wait_font_timeout": 8000,
         }
