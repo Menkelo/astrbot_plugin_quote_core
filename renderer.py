@@ -678,4 +678,5 @@ class QuoteRenderer:
 
         return html_content, {
             "full_page": True,
-            "viewport": {"width": 1600
+            "viewport": {"width": 1600, "height": 1},
+        }
