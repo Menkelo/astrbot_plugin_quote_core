@@ -133,3 +133,6 @@ Thumbs.db
 quotes_by_group/
 quotes.json
 *.db
+
+# 运行时下载并缓存的字体（不提交进仓库）
+assets/fonts/

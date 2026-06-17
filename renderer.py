@@ -181,9 +181,10 @@ class QuoteRenderer:
     """轻量高速版渲染"""
 
     DEFAULT_AVATAR_B64: str = ""
-    # 单条语录用思源宋体（@fontsource 的 woff2 子集文件，线上拉取）。
-    # 国内服务器常访问不了官方 cdn.jsdelivr.net，故 src 配多个国内可达镜像，
-    # 浏览器会按顺序逐个尝试、某个失败自动换下一个，最后回退官方源兜底。
+    # 单条语录用思源宋体（@fontsource 的 woff2 子集文件）。
+    # 提速策略：运行时从 CDN 镜像下载一次，缓存到本地 assets/fonts（已 gitignore、
+    # 不提交进仓库）；之后出图直接内联缓存的 data URI，零网络等待、出图飞快。
+    # 国内服务器常访问不了官方 cdn.jsdelivr.net，故下载时按多镜像顺序逐个尝试。
     _NSS_PATH = "@fontsource/noto-serif-sc@5.2.9/files/noto-serif-sc-chinese-simplified-{w}-normal.woff2"
     _FONT_MIRRORS = (
         "https://cdn.jsdmirror.com/npm/",   # 专为国内做的 jsDelivr 镜像
@@ -191,11 +192,14 @@ class QuoteRenderer:
         "https://fastly.jsdelivr.net/npm/",
         "https://cdn.jsdelivr.net/npm/",    # 官方源兜底
     )
+    _FONT_WEIGHTS = (600, 700)
 
     @staticmethod
     def _build_online_font_face_css() -> str:
+        """CDN URL 版 @font-face（多镜像降级）。仅作本地缓存就绪前的兜底，
+        此时浏览器需自行联网拉取字体，较慢。"""
         faces = []
-        for weight in (600, 700):
+        for weight in QuoteRenderer._FONT_WEIGHTS:
             path = QuoteRenderer._NSS_PATH.format(w=weight)
             srcs = ",".join(
                 "url('" + base + path + "') format('woff2')"
@@ -208,7 +212,106 @@ class QuoteRenderer:
             )
         return "".join(faces)
 
-    ONLINE_FONT_FACE_CSS: str = ""  # 由 init_resources 调用 _build_online_font_face_css 填充
+    # 当前生效的 @font-face：缓存就绪后为 data URI 版，否则为 CDN URL 兜底版
+    ONLINE_FONT_FACE_CSS: str = ""
+    _FONT_CACHE_CSS: str = ""        # 本地缓存就绪后的 data URI @font-face
+    _font_ready: bool = False
+    _font_lock = None
+    _plugin_dir: Optional[Path] = None
+
+    @classmethod
+    def _font_cache_dir(cls) -> Path:
+        base = cls._plugin_dir or Path(__file__).parent
+        return base / "assets" / "fonts"
+
+    @classmethod
+    def _font_cache_path(cls, weight: int) -> Path:
+        return cls._font_cache_dir() / ("NotoSerifSC-" + str(weight) + ".woff2")
+
+    @staticmethod
+    def _face_from_bytes(weight: int, data: bytes) -> str:
+        b64 = base64.b64encode(data).decode()
+        return (
+            "@font-face{font-family:'Noto Serif SC';font-style:normal;"
+            "font-display:swap;font-weight:" + str(weight) + ";"
+            "src:url(data:font/woff2;base64," + b64 + ") format('woff2');}"
+        )
+
+    @classmethod
+    def _build_cached_font_css(cls) -> str:
+        """本地缓存的所有字重都存在时，构建 data URI @font-face；否则返回空串。"""
+        faces = []
+        for weight in cls._FONT_WEIGHTS:
+            fp = cls._font_cache_path(weight)
+            try:
+                if fp.exists() and fp.stat().st_size > 1000:
+                    faces.append(cls._face_from_bytes(weight, fp.read_bytes()))
+                else:
+                    return ""
+            except Exception:
+                return ""
+        return "".join(faces)
+
+    @classmethod
+    async def _ensure_font_css(cls) -> str:
+        """返回可用的 @font-face：优先本地缓存(data URI)；缺失则从 CDN 下载并缓存。
+        下载仅发生一次；失败时回退 CDN URL 版（仍可出图，只是较慢，下次再试）。"""
+        if cls._font_ready and cls._FONT_CACHE_CSS:
+            return cls._FONT_CACHE_CSS
+        if cls._font_lock is None:
+            cls._font_lock = asyncio.Lock()
+        async with cls._font_lock:
+            if cls._font_ready and cls._FONT_CACHE_CSS:
+                return cls._FONT_CACHE_CSS
+            css = cls._build_cached_font_css()
+            if css:
+                cls._FONT_CACHE_CSS = css
+                cls.ONLINE_FONT_FACE_CSS = css
+                cls._font_ready = True
+                return css
+            try:
+                cls._font_cache_dir().mkdir(parents=True, exist_ok=True)
+            except Exception:
+                pass
+            faces = []
+            ok = True
+            async with aiohttp.ClientSession() as session:
+                for weight in cls._FONT_WEIGHTS:
+                    fp = cls._font_cache_path(weight)
+                    data = None
+                    try:
+                        if fp.exists() and fp.stat().st_size > 1000:
+                            data = fp.read_bytes()
+                    except Exception:
+                        data = None
+                    if data is None:
+                        path = cls._NSS_PATH.format(w=weight)
+                        for base in cls._FONT_MIRRORS:
+                            try:
+                                async with session.get(base + path, timeout=15) as resp:
+                                    if resp.status == 200:
+                                        buf = await resp.read()
+                                        if len(buf) > 1000:
+                                            data = buf
+                                            try:
+                                                fp.write_bytes(buf)
+                                            except Exception:
+                                                pass
+                                            break
+                            except Exception:
+                                continue
+                    if data:
+                        faces.append(cls._face_from_bytes(weight, data))
+                    else:
+                        ok = False
+            if faces and ok:
+                css = "".join(faces)
+                cls._FONT_CACHE_CSS = css
+                cls.ONLINE_FONT_FACE_CSS = css
+                cls._font_ready = True
+                return css
+            # 下载未完整成功：本次用 CDN URL 兜底
+            return cls.ONLINE_FONT_FACE_CSS or cls._build_online_font_face_css()
     _avatar_cache: Dict[str, Tuple[float, str]] = {}
     _avatar_cache_ttl = 24 * 60 * 60
     _playwright = None
@@ -217,8 +320,17 @@ class QuoteRenderer:
 
     @classmethod
     def init_resources(cls, plugin_dir: Path):
-        # 构建线上字体 @font-face（多镜像降级），供单条语录卡片使用
+        cls._plugin_dir = plugin_dir
+        # 先用 CDN URL 版兜底；若本地已有字体缓存则立即切换为 data URI 版（无需联网）
         cls.ONLINE_FONT_FACE_CSS = cls._build_online_font_face_css()
+        try:
+            cached = cls._build_cached_font_css()
+            if cached:
+                cls._FONT_CACHE_CSS = cached
+                cls.ONLINE_FONT_FACE_CSS = cached
+                cls._font_ready = True
+        except Exception:
+            pass
 
         possible_paths = [
             plugin_dir / "logo.png",
@@ -504,13 +616,15 @@ class QuoteRenderer:
         src_html = QuoteRenderer._magazine_source_html(q, current_group_id)
         cmt_html = QuoteRenderer._build_magazine_comments(q, bot_qq, bot_name)
         plugin_info_text = "Menkelo/astrbot_plugin_quote_core"
+        # 优先用本地缓存的字体(data URI)，零网络等待；首次会下载并缓存
+        font_css = await QuoteRenderer._ensure_font_css()
 
         html_content = f"""
         <html>
         <head>
             <meta charset="utf-8">
             <style>
-                {QuoteRenderer.ONLINE_FONT_FACE_CSS or QuoteRenderer._build_online_font_face_css()}
+                {font_css}
                 {MAGAZINE_CSS}
                 body {{ width: 1600px; }}
                 /* 单条语录：本文用思源宋体（衬线/宋体），系统宋体兜底 */
@@ -552,7 +666,7 @@ class QuoteRenderer:
             # 仅单条卡片等待宋体加载完成再截图，确保字体生效
             "wait_font_family": "Noto Serif SC",
             "wait_font_selectors": [".b-qtext", ".b-byline"],
-            "wait_font_timeout": 6000,
+            "wait_font_timeout": 4000,
         }
 
     @staticmethod
