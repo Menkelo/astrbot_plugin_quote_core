@@ -286,6 +286,41 @@ class QuoteRenderer:
                 timeout=15000
             )
 
+            # 可选：等待指定 Web 字体加载完成再截图（仅在 options 指定时启用，
+            # 默认渲染路径保持“不等字体”的高速行为不变）。
+            wait_font_family = options.get("wait_font_family")
+            if wait_font_family:
+                try:
+                    await page.evaluate(
+                        """
+                        async (cfg) => {
+                            const family = cfg.family;
+                            const selector = cfg.selector;
+                            const timeout = cfg.timeout || 7000;
+                            const el = selector
+                                ? document.querySelector(selector)
+                                : document.body;
+                            const text = el ? (el.textContent || '') : '';
+                            const spec = `100px '${family}'`;
+                            const deadline = Date.now() + timeout;
+                            while (Date.now() < deadline) {
+                                try { await document.fonts.load(spec, text); } catch (e) {}
+                                if (document.fonts.check(spec, text)) return true;
+                                await new Promise(r => setTimeout(r, 120));
+                            }
+                            return false;
+                        }
+                        """,
+                        {
+                            "family": wait_font_family,
+                            "selector": options.get("wait_font_selector"),
+                            "timeout": int(options.get("wait_font_timeout", 7000)),
+                        },
+                    )
+                except Exception:
+                    # 字体加载失败时静默降级，使用回退字体继续渲染
+                    pass
+
             full_height = await page.evaluate(
                 "Math.max(document.body.scrollHeight, document.documentElement.scrollHeight)"
             )
@@ -423,9 +458,19 @@ class QuoteRenderer:
         <html>
         <head>
             <meta charset="utf-8">
+            <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+            <link rel="stylesheet"
+                  href="https://cdn.jsdelivr.net/npm/@fontsource/noto-serif-sc@5.2.9/index.css">
             <style>
                 {MAGAZINE_CSS}
                 body {{ width: 1600px; }}
+                /* 单条语录：本文用思源宋体（衬线/宋体），系统宋体兜底 */
+                .b-card .b-qtext,
+                .b-card .b-byline {{
+                    font-family: 'Noto Serif SC', 'Source Han Serif SC',
+                                 'Songti SC', SimSun, STSong, 'Noto Serif',
+                                 Georgia, 'Times New Roman', serif;
+                }}
             </style>
         </head>
         <body>
@@ -455,6 +500,10 @@ class QuoteRenderer:
         return html_content, {
             "full_page": True,
             "viewport": {"width": 1600, "height": 1},
+            # 仅单条卡片等待宋体加载完成再截图，确保字体生效
+            "wait_font_family": "Noto Serif SC",
+            "wait_font_selector": ".b-qtext",
+            "wait_font_timeout": 7000,
         }
 
     @staticmethod
@@ -629,5 +678,4 @@ class QuoteRenderer:
 
         return html_content, {
             "full_page": True,
-            "viewport": {"width": 1600, "height": 1},
-        }
+            "viewport": {"width": 1600
