@@ -294,8 +294,12 @@ class QuoteRenderer:
                 if not selectors:
                     one = options.get("wait_font_selector")
                     selectors = [one] if one else ["body"]
-                # 不再死等 networkidle（头像等请求会拖慢），改为主动加载并逐字重
-                # 校验字体本身：字体就绪即截图，通常远快于网络空闲。
+                # 不再死等 networkidle（头像等请求会拖慢）；先等浏览器字体表就绪
+                # （只等字体、不等头像，很快），再主动加载并逐字重校验。
+                try:
+                    await page.evaluate("document.fonts.ready")
+                except Exception:
+                    pass
                 try:
                     await page.evaluate(
                         """
