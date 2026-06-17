@@ -181,6 +181,34 @@ class QuoteRenderer:
     """轻量高速版渲染"""
 
     DEFAULT_AVATAR_B64: str = ""
+    # 单条语录用思源宋体（@fontsource 的 woff2 子集文件，线上拉取）。
+    # 国内服务器常访问不了官方 cdn.jsdelivr.net，故 src 配多个国内可达镜像，
+    # 浏览器会按顺序逐个尝试、某个失败自动换下一个，最后回退官方源兜底。
+    _NSS_PATH = "@fontsource/noto-serif-sc@5.2.9/files/noto-serif-sc-chinese-simplified-{w}-normal.woff2"
+    _FONT_MIRRORS = (
+        "https://cdn.jsdmirror.com/npm/",   # 专为国内做的 jsDelivr 镜像
+        "https://gcore.jsdelivr.net/npm/",  # Gcore 节点，国内通常较稳
+        "https://fastly.jsdelivr.net/npm/",
+        "https://cdn.jsdelivr.net/npm/",    # 官方源兜底
+    )
+
+    @staticmethod
+    def _build_online_font_face_css() -> str:
+        faces = []
+        for weight in (600, 700):
+            path = QuoteRenderer._NSS_PATH.format(w=weight)
+            srcs = ",".join(
+                "url('" + base + path + "') format('woff2')"
+                for base in QuoteRenderer._FONT_MIRRORS
+            )
+            faces.append(
+                "@font-face{font-family:'Noto Serif SC';font-style:normal;"
+                "font-display:swap;font-weight:" + str(weight) + ";"
+                "src:" + srcs + ";}"
+            )
+        return "".join(faces)
+
+    ONLINE_FONT_FACE_CSS: str = ""  # 由 init_resources 调用 _build_online_font_face_css 填充
     _avatar_cache: Dict[str, Tuple[float, str]] = {}
     _avatar_cache_ttl = 24 * 60 * 60
     _playwright = None
@@ -189,6 +217,9 @@ class QuoteRenderer:
 
     @classmethod
     def init_resources(cls, plugin_dir: Path):
+        # 构建线上字体 @font-face（多镜像降级），供单条语录卡片使用
+        cls.ONLINE_FONT_FACE_CSS = cls._build_online_font_face_css()
+
         possible_paths = [
             plugin_dir / "logo.png",
             plugin_dir / "assets" / "logo.png"
@@ -202,6 +233,7 @@ class QuoteRenderer:
                         + base64.b64encode(f.read()).decode()
                     )
                 break
+
 
     @classmethod
     async def _get_browser(cls):
@@ -286,16 +318,7 @@ class QuoteRenderer:
                 timeout=15000
             )
 
-            # 可选：用 add_style_tag 确定性加载字体 CSS（Playwright 会等样式表
-            # 下载并注册完成才返回，避免 @import 异步时机不确定导致字体回退）。
-            wait_font_css_url = options.get("wait_font_css_url")
-            if wait_font_css_url:
-                try:
-                    await page.add_style_tag(url=wait_font_css_url)
-                except Exception:
-                    pass
-
-            # 可选：等待指定 Web 字体加载完成再截图（仅在 options 指定时启用，
+            # 可选：等待指定字体加载完成再截图（仅在 options 指定时启用，
             # 默认渲染路径保持“不等字体”的高速行为不变）。
             wait_font_family = options.get("wait_font_family")
             if wait_font_family:
@@ -487,6 +510,7 @@ class QuoteRenderer:
         <head>
             <meta charset="utf-8">
             <style>
+                {QuoteRenderer.ONLINE_FONT_FACE_CSS or QuoteRenderer._build_online_font_face_css()}
                 {MAGAZINE_CSS}
                 body {{ width: 1600px; }}
                 /* 单条语录：本文用思源宋体（衬线/宋体），系统宋体兜底 */
@@ -527,9 +551,8 @@ class QuoteRenderer:
             "viewport": {"width": 1600, "height": 1},
             # 仅单条卡片等待宋体加载完成再截图，确保字体生效
             "wait_font_family": "Noto Serif SC",
-            "wait_font_css_url": "https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700&display=swap",
             "wait_font_selectors": [".b-qtext", ".b-byline"],
-            "wait_font_timeout": 8000,
+            "wait_font_timeout": 6000,
         }
 
     @staticmethod
